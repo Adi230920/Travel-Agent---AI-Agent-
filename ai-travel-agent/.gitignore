@@ -1,0 +1,43 @@
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+bin/
+lib/
+include/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+.cache
+htmlcov/
+nosetests.xml
+coverage.xml
+*.mo
+*.pot
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (in case frontend uses it)
+node_modules/
+npm-debug.log*
+
+# Project specific
+backend/__pycache__/
+cli/__pycache__/
+tests/__pycache__/

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+langgraph
+langchain
+langchain-openai
+python-dotenv
+requests
+openai
+pytest
