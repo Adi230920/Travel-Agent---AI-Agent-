@@ -35,9 +35,13 @@ travel_graph = build_graph(checkpointer=checkpointer)
 class PlanRequest(BaseModel):
     origin_city: str
     budget: str
-    duration: int
+    duration: Optional[int] = 5
+    departure_date: Optional[str] = None
+    return_date: Optional[str] = None
     travel_style: str
+    travel_pace: str = "balanced"
     weather_preference: str
+    travel_type: str = "international"
 
 class ItineraryRequest(BaseModel):
     session_id: str
@@ -60,9 +64,16 @@ async def plan_trip(request: PlanRequest):
     """
     # ── Guardrail: reject bad input before any LLM call ────
     if not request.origin_city or not request.origin_city.strip():
-        raise HTTPException(status_code=422, detail="origin_city is required and must be non-empty.")
-    if request.duration < 1 or request.duration > 30:
-        raise HTTPException(status_code=422, detail="duration must be between 1 and 30 days.")
+        raise HTTPException(status_code=422, detail="origin_city is required.")
+    
+    # If duration is provided but not dates, validate it.
+    # Otherwise, input_agent will calculate duration from dates.
+    if request.duration is not None and not (request.departure_date and request.return_date):
+        if request.duration < 1 or request.duration > 30:
+            raise HTTPException(status_code=422, detail="duration must be between 1 and 30 days.")
+
+    if request.travel_type not in ["domestic", "international"]:
+        raise HTTPException(status_code=422, detail="travel_type must be 'domestic' or 'international'.")
 
     try:
         session_id = str(uuid.uuid4())
@@ -89,7 +100,8 @@ async def plan_trip(request: PlanRequest):
             
         return {
             "session_id": session_id,
-            "recommendations": result.get("recommendations", [])
+            "recommendations": result.get("recommendations", []),
+            "destination_images": result.get("destination_images", {})
         }
         
     except HTTPException:
@@ -136,7 +148,10 @@ async def get_itinerary(request: ItineraryRequest):
                 detail=str(result["error"]),
             )
             
-        return {"itinerary": result.get("itinerary", {})}
+        return {
+            "itinerary": result.get("itinerary", {}),
+            "transport_options": result.get("transport_options", [])
+        }
         
     except HTTPException:
         raise  # re-raise HTTP exceptions as-is

@@ -1,230 +1,98 @@
-# ✈️ AI Travel Agent — VoyagerAI
+# ✈️ VoyagerAI — Intelligent Travel Agent
 
-An AI-powered travel planning application that generates personalised destination recommendations and day-by-day itineraries using LLM agents orchestrated by [LangGraph](https://langchain-ai.github.io/langgraph/).
-
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
-![LangGraph](https://img.shields.io/badge/LangGraph-stateful_graph-purple)
+An AI-powered travel planning ecosystem that transforms vague travel desires into detailed, actionable itineraries. Built with a modular, multi-agent architecture using **LangGraph** and **FastAPI**.
 
 ---
 
-## 🏗️ Architecture
+## 🎯 Objective
+The primary goal of VoyagerAI is to simplify the complex process of trip planning. By leveraging Large Language Models (LLMs) and real-time external data (Weather, TripAdvisor), the system provides personalized, context-aware destination recommendations and comprehensive day-by-day travel plans, ensuring every trip is optimized for the user's preferences, budget, and local conditions.
 
-```
-User Input  →  InputAgent (validate)
-            →  WeatherTool (score destinations)
-            →  RecommendationAgent (LLM → 5 ranked options)
-            →  [User selects a destination]
-            →  PlanningAgent (LLM → day-by-day itinerary)
-```
+## 🛠️ Tools / Technologies Used
 
-The pipeline is modelled as a **LangGraph state graph** with an interrupt before the planning node, allowing the user to select a destination before itinerary generation.
+### Backend Stack
+- **Language**: Python 3.10+
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (High-performance REST API)
+- **Agent Orchestration**: [LangGraph](https://langchain-ai.github.io/langgraph/) (Stateful, multi-agent workflows)
+- **AI Models**: Support for OpenAI, Groq (Llama 3), and OpenRouter
+- **Environment**: Pydantic, Python-dotenv
 
-### Project Structure
+### APIs & Integrations
+- **TripAdvisor (via RapidAPI)**: Provides real-time venue recommendations and popularity data.
+- **OpenWeatherMap**: Fetches current weather data for dynamic destination scoring.
+- **Unsplash API**: Sources high-quality, relevant imagery for recommended locations.
 
-```
-ai-travel-agent/
-├── backend/
-│   ├── agents/
-│   │   ├── input_agent.py          # Input validation & normalisation
-│   │   ├── recommendation_agent.py # LLM-based destination recommendations
-│   │   └── planning_agent.py       # LLM-based itinerary generation
-│   ├── graph/
-│   │   └── travel_graph.py         # LangGraph pipeline orchestration
-│   ├── prompts/
-│   │   ├── recommendation_prompt.py # Prompt templates for recommendations
-│   │   └── itinerary_prompt.py      # Prompt templates for itineraries
-│   ├── state/
-│   │   └── session_state.py        # TravelState schema & factory
-│   ├── tools/
-│   │   └── weather_tool.py         # OpenWeatherMap integration
-│   ├── api.py                      # FastAPI REST endpoints
-│   └── config.py                   # Environment config loader
-├── cli/
-│   └── main.py                     # Terminal-based interactive CLI
-├── frontend/
-│   ├── index.html                  # Single-page app
-│   ├── style.css                   # Design system & styles
-│   └── app.js                      # Client-side logic
-├── docs/                           # Design documents & specs
-├── tests/
-│   └── test_cases.py               # Test suite
-├── .env.example                    # Environment template
-├── requirements.txt                # Python dependencies
-└── README.md                       # ← You are here
-```
+### Frontend
+- **Structure**: Semantic HTML5
+- **Styling**: Modern Vanilla CSS3 (Dark-mode, Glassmorphism, Micro-animations)
+- **Logic**: Vanilla JavaScript (ES6+), Fetch API
 
 ---
 
-## 🚀 Quick Start
+## 🧠 Methodology / Approach
 
-### Prerequisites
+VoyagerAI utilizes an **Agentic Workflow** modeled as a directed graph. This allows for stateful transitions, error handling, and human-in-the-loop decision-making.
 
-- **Python 3.10+** installed
-- At least one LLM API key: [Groq](https://console.groq.com/) (free) or [OpenRouter](https://openrouter.ai/)
-- *(Optional)* [OpenWeatherMap](https://openweathermap.org/api) API key for weather scoring
+1.  **State Management**: A centralized `TravelState` object tracks user preferences, recommended options, and the final itinerary throughout the session.
+2.  **Multi-Agent Pipeline**:
+    -   **Input Agent**: Sanitizes and validates user queries (e.g., origin city, budget constraints).
+    -   **Recommendation Agent**: A "Brain" node that combines LLM reasoning with weather/popularity scores to suggest the top 5 uniquely suited destinations.
+    -   **Planning Agent**: Generates a rich, chronologically structured itinerary for the user's chosen destination.
+3.  **Human-in-the-loop**: The graph execution interrupts after the recommendation phase, waiting for the user's specific selection via the API/UI before proceeding to generate the itinerary.
 
-### 1. Clone & Install
+---
 
+## 🚀 Implementation Steps
+
+### 1. Repository & Environment Setup
+Initialize the project structure and install dependencies.
 ```bash
 git clone https://github.com/[your-username]/ai-travel-agent.git
 cd ai-travel-agent
-
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment Variables
+### 2. Agent Development
+Implementation of specialized agents in `backend/agents/` to handle validation, reasoning, and planning logic independently.
 
-```bash
-cp .env.example .env
-```
+### 3. Workflow Orchestration
+Building the `travel_graph.py` to define nodes and edges, implementing the logic that connects agents to external tools and manages session transitions.
 
-Open `.env` and fill in your API keys:
+### 4. API Layer Integration
+Developing FastAPI endpoints in `api.py` to bridge the LangGraph backend with the frontend/CLI, handling CORS and session persistence.
 
-```env
-OPENROUTER_API_KEY=sk-or-v1-...      # Required if MODEL_PROVIDER=openrouter
-GROQ_API_KEY=gsk_...                  # Required if MODEL_PROVIDER=groq
-WEATHER_API_KEY=your_owm_key_here     # Optional — fallback scores used if missing
-MODEL_PROVIDER=groq                   # "groq" or "openrouter"
-MODEL_NAME=                           # Optional — override default model
-```
-
-### 3. Run the Backend API
-
-```bash
-uvicorn backend.api:app --reload
-```
-
-The API will start at **http://127.0.0.1:8000**. Verify it's running:
-
-```bash
-curl http://127.0.0.1:8000/api/health
-# → {"status": "ok"}
-```
-
-### 4. Open the Frontend
-
-Open `frontend/index.html` in your browser. The frontend connects to `http://127.0.0.1:8000` automatically when opened locally.
-
-> **Tip:** For the best experience, use a local HTTP server:
-> ```bash
-> python -m http.server 5500 --directory frontend
-> ```
-> Then visit **http://localhost:5500**.
-
-### 5. (Alternative) Use the CLI
-
-```bash
-python cli/main.py
-```
-
-Follow the interactive prompts to plan your trip entirely from the terminal.
+### 5. UI/UX Design
+Creating a premium, responsive interface in `frontend/` that provides a seamless "Chat-to-Plan" experience with real-time feedback.
 
 ---
 
-## 📡 API Endpoints
+## 📊 Results / Output Screenshots
 
-| Method | Endpoint         | Description                                    |
-|--------|------------------|------------------------------------------------|
-| GET    | `/api/health`    | Health check                                   |
-| POST   | `/api/plan`      | Submit preferences → get 5 recommendations     |
-| POST   | `/api/itinerary` | Select a destination → get day-by-day itinerary |
+### 🖥️ Dashboard View
+*The main interface where users input their travel desires.*
+![Dashboard Placeholder](https://via.placeholder.com/800x450/1e1e2e/ffffff?text=VoyagerAI+Dashboard+Interface)
 
-### POST `/api/plan`
+### 🗺️ Destination Recommendations
+*Personalized suggestions with weather scores and high-quality imagery.*
+![Recommendations Placeholder](https://via.placeholder.com/800x450/2a2a3e/ffffff?text=AI+Recommendations+Panel)
 
-**Request:**
-```json
-{
-  "origin_city": "Mumbai",
-  "budget": "medium",
-  "duration": 5,
-  "travel_style": "cultural",
-  "weather_preference": "warm"
-}
-```
-
-**Response:**
-```json
-{
-  "session_id": "uuid-here",
-  "recommendations": [
-    {
-      "rank": 1,
-      "destination": "Bali",
-      "country": "Indonesia",
-      "reason": "Warm beaches and temples perfect for relaxed 5-day escapes",
-      "weather_score": 9,
-      "budget_fit": "medium"
-    }
-  ]
-}
-```
-
-### POST `/api/itinerary`
-
-**Request:**
-```json
-{
-  "session_id": "uuid-from-plan-response",
-  "selected_destination": "Bali"
-}
-```
-
-**Response:**
-```json
-{
-  "itinerary": {
-    "destination": "Bali, Indonesia",
-    "duration": 5,
-    "itinerary": {
-      "Day 1": {
-        "morning": "Watch sunrise at Tanah Lot temple",
-        "afternoon": "Explore Ubud Monkey Forest",
-        "evening": "Dinner at a local warung",
-        "tip": "Rent a scooter for easy mobility"
-      }
-    }
-  }
-}
-```
+### 🗓️ Itinerary Generation
+*A detailed, day-by-day plan ready for the user's adventure.*
+![Itinerary Placeholder](https://via.placeholder.com/800x450/161622/ffffff?text=Dynamic+Itinerary+View)
 
 ---
 
-## ⚙️ Configuration
+## 🏁 Conclusion
+VoyagerAI successfully demonstrates how specialized AI agents can collaborate to solve complex, multi-step problems like travel planning. By integrating real-world data with LLM reasoning, it provides a tool that is not just a chatbot, but a practical, context-aware travel consultant.
 
-| Variable             | Required | Default  | Description                          |
-|----------------------|----------|----------|--------------------------------------|
-| `OPENROUTER_API_KEY` | Yes*     | —        | OpenRouter API key                   |
-| `GROQ_API_KEY`       | Yes*     | —        | Groq API key                         |
-| `WEATHER_API_KEY`    | Yes      | —        | OpenWeatherMap API key               |
-| `MODEL_PROVIDER`     | Yes      | `groq`   | `"groq"` or `"openrouter"`           |
-| `MODEL_NAME`         | No       | auto     | Override default model for provider  |
-
-*At minimum, the key for your chosen `MODEL_PROVIDER` must be set.
+## 🔮 Future Scope
+-   **Live Booking**: Integration with flight and hotel booking APIs (e.g., Amadeus, Skyscanner).
+-   **Social Integration**: Allow users to share generated itineraries with tripmates.
+-   **PDF Export**: Feature to download itineraries for offline access.
+-   **Voice Commands**: Implementation of AI voice interactions for hands-free planning.
 
 ---
 
-## 🛡️ Guardrails & Error Handling
+## 📄 Setup Guide
+For full setup instructions, please refer to the [.env.example](.env.example) and the **Quick Start** section in the repository.
 
-- **Input validation** runs before any LLM call — rejects empty city, `duration < 1`, and out-of-range values.
-- **Invalid budget** values are normalised to `"low"` (not rejected) for graceful degradation.
-- **Weather API failure** does not block recommendations — a neutral score of 5/10 is used as fallback.
-- **LLM JSON parsing** retries once with a stricter prompt if the first attempt returns malformed JSON.
-- **Frontend** validates all fields client-side before submitting, and displays auto-hiding error banners.
-
----
-
-## 🧪 Testing
-
-See [`docs/testing_cases.md`](docs/testing_cases.md) for the full test matrix.
-
-```bash
-# Run tests
-python -m pytest tests/
-```
-
----
-
-## 📄 License
-
-This project is for educational purposes (college project).
+*This project was developed for educational purposes (College Project).*

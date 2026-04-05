@@ -70,7 +70,7 @@ _PROVIDER_DEFAULTS = {
     },
     "openrouter": {
         "base_url": "https://openrouter.ai/api/v1/chat/completions",
-        "model":    "arcee-ai/trinity-mini:free",
+        "model":    "qwen/qwen3.6-plus:free",
         "key_env":  "OPENROUTER_API_KEY",
     },
 }

@@ -42,6 +42,7 @@ Node responsibilities
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
 import os
@@ -62,12 +63,8 @@ from backend.agents import input_agent, recommendation_agent, planning_agent
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Seed destinations for weather pre-fetch (same set as the legacy CLI)
+# Seed destinations removed to allow for dynamic AI recommendations.
 # ---------------------------------------------------------------------------
-_SEED_DESTINATIONS = [
-    "Paris", "Tokyo", "Bali", "Reykjavik", "New York",
-    "Cape Town", "Bangkok", "Patagonia", "Queenstown", "Santorini",
-]
 
 
 # ===========================================================================
@@ -75,29 +72,18 @@ _SEED_DESTINATIONS = [
 # ===========================================================================
 
 def input_node(state: TravelState) -> TravelState:
-    """Validate user input and pre-fetch weather data."""
+    """Validate user input."""
     try:
         # 1. Parse & validate
         parsed = input_agent.parse_inputs(state["user_input"])
         state["parsed_preferences"] = parsed
 
-        # 2. Fetch weather for seed destinations
-        from backend.tools.weather_tool import get_weather_score
-
-        weather_pref = parsed.get("weather_preference", "any")
-        weather_data: dict = {}
-        for dest in _SEED_DESTINATIONS:
-            try:
-                weather_data[dest] = get_weather_score(dest, weather_pref)
-            except Exception as we:
-                logger.warning("input_node: weather fetch failed for %s: %s", dest, we)
-                weather_data[dest] = {"weather_score": 5, "temp_celsius": None, "condition": "unavailable"}
-
-        state["weather_data"] = weather_data
+        # 2. Initialize empty weather data (will be populated in recommendation_node)
+        state["weather_data"] = {}
 
         # 4. Mark step
         state["current_step"] = "input_complete"
-        logger.info("input_node: completed — preferences parsed, weather fetched.")
+        logger.info("input_node: completed — preferences parsed.")
 
     except Exception as e:
         state["error"] = f"input_node failed: {e}"
@@ -108,22 +94,50 @@ def input_node(state: TravelState) -> TravelState:
 
 
 def recommendation_node(state: TravelState) -> TravelState:
-    """Call the recommendation agent to produce 5 ranked destinations."""
+    """Call the recommendation agent to produce 5 ranked destinations and fetch their weather."""
     try:
         # 1. Extract
         preferences = state["parsed_preferences"]
-        weather_data = state["weather_data"]
 
-        # 2. Delegate to agent
-        recommendations = recommendation_agent.get_recommendations(preferences, weather_data)
+        # 2. Delegate to agent (passing empty weather_data first to get raw recommendations)
+        recommendations = recommendation_agent.get_recommendations(preferences, {})
 
-        # 3. Update state
+        # 3. Fetch real-time weather & images for the recommendations
+        from backend.tools.weather_tool import get_weather_score
+        from backend.tools.image_tool import search_image
+
+        weather_pref = preferences.get("weather_preference", "any")
+        
+        weather_data: dict = {}
+        destination_images: dict = {}
+        for rec in recommendations:
+            dest = rec["destination"]
+            country = rec["country"]
+            # Weather
+            try:
+                w_info = get_weather_score(dest, weather_pref)
+                rec["weather_score"] = w_info.get("weather_score", 5)
+                weather_data[dest] = w_info
+            except Exception as we:
+                logger.warning("recommendation_node: weather fetch failed for %s: %s", dest, we)
+                weather_data[dest] = {"weather_score": 5, "temp_celsius": None, "condition": "unavailable"}
+            
+            # Images
+            try:
+                img_url = search_image(f"{dest}, {country}")
+                destination_images[dest] = img_url
+            except Exception as ie:
+                logger.warning("recommendation_node: image fetch failed for %s: %s", dest, ie)
+
+        # 4. Update state
         state["recommendations"] = recommendations
+        state["weather_data"] = weather_data
+        state["destination_images"] = destination_images
 
-        # 4. Mark step
+        # 5. Mark step
         state["current_step"] = "recommendations_ready"
         logger.info(
-            "recommendation_node: %d recommendations received.", len(recommendations)
+            "recommendation_node: %d recommendations verified with real-time weather.", len(recommendations)
         )
 
     except Exception as e:
@@ -180,10 +194,45 @@ def planning_node(state: TravelState) -> TravelState:
             "budget":       preferences.get("budget", "medium"),
             "duration":     preferences.get("duration", 5),
             "travel_style": preferences.get("travel_style", "balanced"),
+            "travel_pace":  preferences.get("travel_pace", "balanced"),
+            "departure_date": preferences.get("departure_date"),
+            "return_date":    preferences.get("return_date"),
         }
 
-        # 2. Delegate to agent
-        itinerary_data = planning_agent.generate_itinerary(selected, planning_prefs)
+        # 2. Fetch Real-World Data (RapidAPI / TripAdvisor)
+        from backend.tools.rapidapi_tool import get_location_details, search_flights, search_restaurants
+        
+        restaurant_context = ""
+        try:
+            origin = preferences.get("origin_city", "")
+            dep_date = preferences.get("departure_date")
+            ret_date = preferences.get("return_date")
+            
+            # Resolve destination details
+            dest_info = get_location_details(selected)
+            dest_id = dest_info.get("locationId")
+            dest_iata = dest_info.get("iataCode")
+            
+            # Resolve origin IATA if possible
+            origin_info = get_location_details(origin)
+            origin_iata = origin_info.get("iataCode")
+
+            # A. Fetch Flights
+            if origin_iata and dest_iata and dep_date:
+                flights = search_flights(origin_iata, dest_iata, dep_date, ret_date)
+                state["transport_options"] = flights
+                
+            # B. Fetch Restaurants (Top 10 for AI to choose from)
+            if dest_id:
+                restaurants = search_restaurants(dest_id, limit=10)
+                if restaurants:
+                    restaurant_context = json.dumps(restaurants, indent=2)
+                    
+        except Exception as fe:
+            logger.warning("planning_node: external data fetch failed: %s", fe)
+
+        # 3. Delegate to agent
+        itinerary_data = planning_agent.generate_itinerary(selected, planning_prefs, restaurant_context)
 
         # 3. Update state
         state["itinerary"] = itinerary_data

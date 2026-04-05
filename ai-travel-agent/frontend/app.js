@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   AI Travel Agent — Frontend Logic (Vanilla JS)
+   VoyagerAI — Frontend Logic (Premium Experience)
    ═══════════════════════════════════════════════════════════ */
 
 (function () {
@@ -30,34 +30,45 @@
     itineraryTitle:       $('#itinerary-title'),
     itinerarySubtitle:    $('#itinerary-subtitle'),
     loadingPlanLabel:     $('#loading-plan-label'),
+    loadingPlanSub:       $('#screen-loading-plan .loading-sub'),
     loadingItineraryLabel:$('#loading-itinerary-label'),
+    loadingItinerarySub:  $('#screen-loading-itinerary .loading-sub'),
     errorBanner:          $('#error-banner'),
     errorMessage:         $('#error-message'),
     errorCloseBtn:        $('#error-close-btn'),
     backToFormBtn:        $('#back-to-form-btn'),
     backToRecsBtn:        $('#back-to-recommendations-btn'),
     restartBtn:           $('#restart-btn'),
+    transportSection:     $('#transport-section'),
+    flightList:           $('#flight-list'),
   };
 
   // ── State ────────────────────────────────────────────────
   let sessionId = null;
   let recommendations = [];
+  let destinationImages = {};
   let errorTimer = null;
 
   // ═══════════════════════════════════════════════════════════
   // Screen Management
   // ═══════════════════════════════════════════════════════════
 
-  /**
-   * Show a single screen and hide all others.
-   * @param {'input'|'loadingPlan'|'recommendations'|'loadingItinerary'|'itinerary'} name
-   */
   function showScreen(name) {
-    Object.values(screens).forEach((s) => s.classList.remove('active'));
+    Object.values(screens).forEach((s) => {
+      s.classList.remove('active');
+      s.style.display = 'none'; // Ensure they are fully hidden
+    });
     if (screens[name]) {
+      screens[name].style.display = 'block';
+      // Trigger reflow for animation
+      void screens[name].offsetWidth;
       screens[name].classList.add('active');
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  // Initial state
+  showScreen('input');
 
   // ═══════════════════════════════════════════════════════════
   // Error Banner
@@ -67,9 +78,8 @@
     els.errorMessage.textContent = message;
     els.errorBanner.classList.add('visible');
 
-    // Auto-hide after 5 seconds
     clearTimeout(errorTimer);
-    errorTimer = setTimeout(hideError, 5000);
+    errorTimer = setTimeout(hideError, 8000);
   }
 
   function hideError() {
@@ -93,11 +103,9 @@
     const data = await res.json();
 
     if (!res.ok) {
-      // FastAPI HTTPException returns { detail: "..." }
       throw new Error(data.detail || data.error || `Server error (${res.status})`);
     }
 
-    // Legacy format: backend returns { error, step } on failure
     if (data.error) {
       throw new Error(data.error);
     }
@@ -114,43 +122,35 @@
 
     const formData = {
       origin_city:        $('#origin-city').value.trim(),
+      travel_type:        $('input[name="travel_type"]:checked').value,
+      departure_date:     $('#departure-date').value,
+      return_date:        $('#return-date').value,
+      travel_pace:        $('input[name="travel_pace"]:checked').value,
       budget:             $('#budget').value,
-      duration:           parseInt($('#duration').value, 10),
       travel_style:       $('#travel-style').value,
       weather_preference: $('#weather-preference').value,
     };
 
-    // ── Guardrail validation (before any API call) ──────────
+    // Validation
     if (!formData.origin_city) {
-      showError('Please enter a departure city.');
-      return;
-    }
-    if (!formData.budget) {
-      showError('Please select a budget range.');
-      return;
-    }
-    if (!formData.duration || formData.duration < 1 || formData.duration > 30) {
-      showError('Duration must be between 1 and 30 days.');
-      return;
-    }
-    if (!formData.travel_style) {
-      showError('Please select a travel style.');
-      return;
-    }
-    if (!formData.weather_preference) {
-      showError('Please select a weather preference.');
+      showError('Please specify a departure city.');
       return;
     }
 
     // Show loading
     showScreen('loadingPlan');
-    els.loadingPlanLabel.textContent = 'Finding destinations...';
+    els.loadingPlanLabel.textContent = 'Curating Your Options';
+    els.loadingPlanSub.textContent = 'Analysing global destinations and local cultures...';
 
-    // Simulate step progression for better UX
     const labelTimers = [
-      setTimeout(() => { els.loadingPlanLabel.textContent = 'Checking weather data...'; }, 2500),
-      setTimeout(() => { els.loadingPlanLabel.textContent = 'Asking AI for recommendations...'; }, 5000),
-      setTimeout(() => { els.loadingPlanLabel.textContent = 'Ranking destinations...'; }, 8000),
+      setTimeout(() => { 
+        els.loadingPlanLabel.textContent = 'Fetching Weather Data'; 
+        els.loadingPlanSub.textContent = 'Checking real-time conditions for ideal matches...';
+      }, 3000),
+      setTimeout(() => { 
+        els.loadingPlanLabel.textContent = 'Consulting VoyagerAI'; 
+        els.loadingPlanSub.textContent = 'Our intelligence is ranking the best fits for you...';
+      }, 6500),
     ];
 
     try {
@@ -159,16 +159,17 @@
       labelTimers.forEach(clearTimeout);
       sessionId = data.session_id;
       recommendations = data.recommendations || [];
+      destinationImages = data.destination_images || {};
 
       if (recommendations.length === 0) {
-        throw new Error('No recommendations received. Please try different preferences.');
+        throw new Error('No destinations matched your criteria. Try widening your preferences.');
       }
 
       renderRecommendations(recommendations);
       showScreen('recommendations');
     } catch (err) {
       labelTimers.forEach(clearTimeout);
-      showError(err.message || 'Something went wrong while finding destinations.');
+      showError(err.message || 'The Voyager system encountered an unexpected detour.');
       showScreen('input');
     }
   });
@@ -185,24 +186,30 @@
       card.className = 'rec-card';
       card.setAttribute('tabindex', '0');
       card.setAttribute('role', 'button');
-      card.setAttribute('aria-label', `Select ${rec.name || rec.destination}`);
-      card.dataset.index = index;
-
-      const name = rec.name || rec.destination || 'Unknown';
+      
+      const name = rec.destination || 'Selected Escape';
       const country = rec.country || '';
-      const reason = rec.reason || rec.description || '';
+      const reason = rec.reason || '';
       const weatherScore = rec.weather_score != null ? rec.weather_score : '';
+      const budgetFit = rec.budget_fit || '';
+      const imageUrl = destinationImages[name] || '';
 
       card.innerHTML = `
-        <div class="rec-card-header">
-          <div>
-            <div class="rec-card-name">${escapeHtml(name)}</div>
-            ${country ? `<div class="rec-card-country">${escapeHtml(country)}</div>` : ''}
+        <div class="rec-card-image" style="background-image: url('${imageUrl}')"></div>
+        <div class="rec-card-content">
+          <div class="rec-card-header">
+            <div class="rec-info">
+              <span class="country">${escapeHtml(country)}</span>
+              <h3>${escapeHtml(name)}</h3>
+            </div>
+            ${weatherScore !== '' ? `<span class="weather-badge">☀ ${escapeHtml(String(weatherScore))}/10</span>` : ''}
           </div>
-          ${weatherScore !== '' ? `<span class="weather-badge">☀ ${escapeHtml(String(weatherScore))}/10</span>` : ''}
+          <p class="reason">${escapeHtml(reason)}</p>
+          <div class="rec-footer">
+            <span class="budget-fit">${escapeHtml(budgetFit)} budget</span>
+            <span class="cta-text">Select Destination →</span>
+          </div>
         </div>
-        ${reason ? `<p class="rec-card-reason">${escapeHtml(reason)}</p>` : ''}
-        <span class="rec-card-cta">Click to plan →</span>
       `;
 
       card.addEventListener('click', () => selectDestination(rec));
@@ -222,15 +229,15 @@
   // ═══════════════════════════════════════════════════════════
 
   async function selectDestination(rec) {
-    const destName = rec.name || rec.destination;
+    const destName = rec.destination;
 
-    // Show loading
     showScreen('loadingItinerary');
-    els.loadingItineraryLabel.textContent = 'Building your itinerary...';
+    els.loadingItineraryLabel.textContent = 'Architecting Itinerary';
+    els.loadingItinerarySub.textContent = 'Crafting a unique day-by-day sequence for ' + destName + '...';
 
     const labelTimers = [
-      setTimeout(() => { els.loadingItineraryLabel.textContent = 'Planning activities for each day...'; }, 2500),
-      setTimeout(() => { els.loadingItineraryLabel.textContent = 'Adding local tips and food spots...'; }, 5500),
+      setTimeout(() => { els.loadingItineraryLabel.textContent = 'Optimising Routes'; }, 3000),
+      setTimeout(() => { els.loadingItineraryLabel.textContent = 'Polishing Local Tips'; }, 6000),
     ];
 
     try {
@@ -242,17 +249,51 @@
       labelTimers.forEach(clearTimeout);
 
       const itinerary = data.itinerary;
-      if (!itinerary || Object.keys(itinerary).length === 0) {
-        throw new Error('No itinerary was generated. Please try again.');
+      const flights = data.transport_options || [];
+
+      if (!itinerary || (typeof itinerary === 'object' && Object.keys(itinerary).length === 0)) {
+        throw new Error('Voyager failed to map this journey. Please try another destination.');
       }
 
+      renderTransport(flights);
       renderItinerary(itinerary, destName);
       showScreen('itinerary');
     } catch (err) {
       labelTimers.forEach(clearTimeout);
-      showError(err.message || 'Something went wrong while building the itinerary.');
+      showError(err.message || 'Something went wrong while building your map.');
       showScreen('recommendations');
     }
+  }
+
+  function renderTransport(flights) {
+    els.flightList.innerHTML = '';
+    if (!flights || flights.length === 0) {
+      els.transportSection.style.display = 'none';
+      return;
+    }
+
+    els.transportSection.style.display = 'block';
+    flights.forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'flight-item';
+      item.innerHTML = `
+        <div class="flight-meta">
+          <span class="carrier">${escapeHtml(f.carrier)}</span>
+          <span class="duration">⏱ ${escapeHtml(f.duration)}</span>
+        </div>
+        <div class="flight-times">
+          <div class="time-point">
+            <span class="time">${new Date(f.departure).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+          </div>
+          <div class="flight-path"></div>
+          <div class="time-point">
+            <span class="time">${new Date(f.arrival).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+          </div>
+        </div>
+        <div class="flight-price">${escapeHtml(f.price)}</div>
+      `;
+      els.flightList.appendChild(item);
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -260,46 +301,27 @@
   // ═══════════════════════════════════════════════════════════
 
   function renderItinerary(itinerary, destName) {
-    els.itineraryTitle.textContent = `Your ${destName} Itinerary`;
-    els.itinerarySubtitle.textContent = `A curated day-by-day plan just for you.`;
+    els.itineraryTitle.textContent = `${destName}`;
+    els.itinerarySubtitle.textContent = `A masterfully crafted journey through ${destName}.`;
     els.accordion.innerHTML = '';
-
-    // The itinerary may come as:
-    //   { days: [ { day: 1, morning: "...", afternoon: "...", evening: "..." }, ... ] }
-    //   or { "Day 1": { morning, afternoon, evening }, ... }
-    //   We handle both shapes.
 
     let days = [];
 
-    if (Array.isArray(itinerary.days)) {
-      days = itinerary.days;
-    } else if (typeof itinerary === 'object') {
-      // Try to build from keys like "Day 1", "day_1", etc.
-      const keys = Object.keys(itinerary).filter(
-        (k) => k.toLowerCase().startsWith('day') || !isNaN(k)
-      );
-
+    // Normalise itinerary shape
+    if (itinerary.itinerary && typeof itinerary.itinerary === 'object') {
+      const inner = itinerary.itinerary;
+      const keys = Object.keys(inner).filter(k => k.toLowerCase().startsWith('day'));
       if (keys.length > 0) {
-        // Sort keys by numeric portion
-        keys.sort((a, b) => {
-          const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
-          const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
-          return numA - numB;
-        });
-        days = keys.map((k, i) => {
-          const val = itinerary[k];
-          if (typeof val === 'object') {
-            return { day: i + 1, ...val };
-          }
-          return { day: i + 1, morning: String(val), afternoon: '', evening: '' };
-        });
-      } else if (itinerary.itinerary) {
-        // Recursive unwrap
-        return renderItinerary(itinerary.itinerary, destName);
-      } else {
-        // Fallback: show raw data nicely
-        days = [{ day: 1, morning: JSON.stringify(itinerary, null, 2), afternoon: '', evening: '' }];
+        keys.sort((a,b) => (parseInt(a.replace(/\D/g,'')) || 0) - (parseInt(b.replace(/\D/g,'')) || 0));
+        days = keys.map((k, i) => ({ day: i + 1, ...inner[k] }));
       }
+    } else if (Array.isArray(itinerary.days)) {
+      days = itinerary.days;
+    }
+
+    if (days.length === 0) {
+        // Final fallback: raw display
+        days = [{ day: 1, morning: "Itinerary data received but couldn't be parsed into days. Please check back later." }];
     }
 
     days.forEach((dayObj, idx) => {
@@ -311,32 +333,48 @@
 
       const panel = document.createElement('div');
       panel.className = 'day-panel';
-      // Auto-expand Day 1
       if (idx === 0) panel.classList.add('open');
 
       panel.innerHTML = `
         <button class="day-header" aria-expanded="${idx === 0 ? 'true' : 'false'}" id="day-header-${dayNum}">
-          <span>Day ${dayNum}</span>
-          <span class="day-chevron">▼</span>
+          <h3>Day ${dayNum}</h3>
+          <span class="chevron">▼</span>
         </button>
         <div class="day-body" role="region" aria-labelledby="day-header-${dayNum}">
-          <div class="day-body-inner">
+          <div class="day-content">
             <div class="time-slot">
               <span class="time-label">Morning</span>
-              <span class="time-content">${escapeHtml(morning)}</span>
+              <span class="time-desc">${escapeHtml(morning)}</span>
             </div>
             <div class="time-slot">
               <span class="time-label">Afternoon</span>
-              <span class="time-content">${escapeHtml(afternoon)}</span>
+              <span class="time-desc">${escapeHtml(afternoon)}</span>
             </div>
             <div class="time-slot">
               <span class="time-label">Evening</span>
-              <span class="time-content">${escapeHtml(evening)}</span>
+              <span class="time-desc">${escapeHtml(evening)}</span>
             </div>
+            ${dayObj.food_spots ? `
+            <div class="food-section">
+              <span class="time-label">Culinary Highlights</span>
+              <div class="food-grid">
+                ${dayObj.food_spots.map(fs => `
+                  <div class="food-card">
+                    <div class="food-header">
+                      <span class="food-name">${escapeHtml(fs.name)}</span>
+                      <span class="food-price">${escapeHtml(fs.price_level)}</span>
+                    </div>
+                    <p class="food-reason">${escapeHtml(fs.reason)}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>` : ''}
             ${tip ? `
-            <div class="time-slot tip-slot">
-              <span class="time-label">💡 Tip</span>
-              <span class="time-content">${escapeHtml(tip)}</span>
+            <div class="tip-box">
+              <span class="time-label">Pro Tip</span>
+              <div class="time-desc-wrapper">
+                <p class="time-desc">${escapeHtml(tip)}</p>
+              </div>
             </div>` : ''}
           </div>
         </div>
@@ -356,14 +394,8 @@
   // Navigation Buttons
   // ═══════════════════════════════════════════════════════════
 
-  els.backToFormBtn.addEventListener('click', () => {
-    showScreen('input');
-  });
-
-  els.backToRecsBtn.addEventListener('click', () => {
-    showScreen('recommendations');
-  });
-
+  els.backToFormBtn.addEventListener('click', () => showScreen('input'));
+  els.backToRecsBtn.addEventListener('click', () => showScreen('recommendations'));
   els.restartBtn.addEventListener('click', () => {
     sessionId = null;
     recommendations = [];
@@ -376,8 +408,9 @@
   // ═══════════════════════════════════════════════════════════
 
   function escapeHtml(str) {
+    if (!str) return '';
     const div = document.createElement('div');
-    div.appendChild(document.createTextNode(str));
+    div.textContent = str;
     return div.innerHTML;
   }
 

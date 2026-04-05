@@ -75,7 +75,9 @@ def build_user_prompt(preferences: dict, weather_data: dict) -> str:
     budget       = preferences.get("budget", "medium")
     duration     = preferences.get("duration", 7)
     travel_style = preferences.get("travel_style", "balanced")
+    travel_pace  = preferences.get("travel_pace", "balanced")
     weather_pref = preferences.get("weather_preference", "any")
+    travel_type  = preferences.get("travel_type", "international")
 
     # Summarise weather context (may be empty dict)
     if weather_data:
@@ -101,19 +103,24 @@ You are an expert travel planner recommending destinations to a traveller.
 - Budget level: {budget}
 - Trip duration: {duration} day(s)
 - Travel style: {travel_style}
+- Travel pace: {travel_pace}
 - Weather preference: {weather_pref}
+- Desired travel type: {travel_type}
 
 {weather_context}
 
 [CONSTRAINTS]
 - Return EXACTLY 5 destinations ranked 1–5. No more, no fewer.
 - Each destination must be a real city or place name.
-- Do NOT recommend the origin city ({origin}) or any city in the same country if origin is well-known.
+- Do NOT recommend the origin city ({origin}).
+- **Travel Type Constraint**:
+    - If travel type is "domestic", ONLY recommend destinations within the SAME COUNTRY as {origin}.
+    - If travel type is "international", ONLY recommend destinations OUTSIDE the country of {origin}.
 - budget_fit must be one of: "low", "medium", "high" — matching the traveller's budget "{budget}".
 - reason field: minimum 8 words, maximum 20 words. Plain text, no markdown.
 - weather_score: integer 0–10, reflecting how well the destination's weather matches the preference "{weather_pref}".
 - If weather data is provided above, use those scores; otherwise estimate.
-- Duration fit: only recommend places feasible in {duration} day(s).
+- **Duration & Pace fit**: only recommend places feasible in {duration} day(s) given a "{travel_pace}" pace.
 - rank must be an integer from 1 to 5, with 1 being the best match.
 
 [OUTPUT FORMAT]

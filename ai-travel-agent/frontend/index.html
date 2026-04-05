@@ -1,23 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
-    content="AI Travel Agent — get personalised destination recommendations and day-by-day itineraries powered by AI." />
-  <title>AI Travel Agent — Plan Your Perfect Trip</title>
+    content="VoyagerAI — Premium AI-powered travel planning. Get personalised destination recommendations and day-by-day itineraries." />
+  <title>VoyagerAI — Plan Your Perfect Journey</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
+  <!-- Background Glows -->
+  <div class="glow-bg"></div>
+  <div class="glow-bg glow-2"></div>
 
   <!-- ─── Error Banner ─────────────────────────────────────── -->
   <div id="error-banner" class="error-banner" role="alert" aria-live="assertive">
-    <span id="error-message"></span>
+    <div class="error-content">
+      <span class="error-icon">⚠</span>
+      <span id="error-message"></span>
+    </div>
     <button id="error-close-btn" class="error-close" aria-label="Dismiss error">&times;</button>
   </div>
 
@@ -27,68 +34,132 @@
     <!-- ─── Header ─────────────────────────────────────────── -->
     <header class="app-header">
       <div class="logo">
-        <span class="logo-icon">✈</span>
+        <div class="logo-inner">
+          <span class="logo-icon">✈</span>
+        </div>
         <h1>Voyager<span class="accent">AI</span></h1>
       </div>
-      <p class="tagline">AI-powered travel planning — from idea to itinerary in seconds</p>
+      <p class="tagline">Crafting extraordinary journeys with artificial intelligence</p>
     </header>
 
     <!-- ═══ SCREEN 1: Input Form ═══════════════════════════ -->
     <section id="screen-input" class="screen active">
-      <div class="card form-card">
-        <h2 class="section-title">Plan Your Trip</h2>
-        <p class="section-subtitle">Tell us about your dream journey and let our AI craft the perfect plan.</p>
+      <div class="card glass form-card">
+        <div class="form-header">
+          <h2 class="section-title">Plan Your Escape</h2>
+          <p class="section-subtitle">Define your preferences and let our AI handle the discovery.</p>
+        </div>
 
         <form id="plan-form" autocomplete="off">
           <!-- Origin City -->
           <div class="field">
             <label for="origin-city">Departure City</label>
-            <input type="text" id="origin-city" name="origin_city" placeholder="e.g. New Delhi" required />
+            <div class="input-wrapper">
+              <input type="text" id="origin-city" name="origin_city" placeholder="e.g. Mumbai, India" required />
+              <span class="input-focus-border"></span>
+            </div>
           </div>
 
-          <!-- Budget -->
+          <!-- Travel Type (Domestic/International) -->
           <div class="field">
-            <label for="budget">Budget</label>
-            <select id="budget" name="budget" required>
-              <option value="" disabled selected>Select budget range</option>
-              <option value="low">Budget-Friendly</option>
-              <option value="medium">Mid-Range</option>
-              <option value="high">Luxury</option>
-            </select>
+            <label>Destination type</label>
+            <div class="segmented-control">
+              <input type="radio" id="domestic" name="travel_type" value="domestic" />
+              <label for="domestic" class="segment">Domestic</label>
+
+              <input type="radio" id="international" name="travel_type" value="international" checked />
+              <label for="international" class="segment">International</label>
+
+              <div class="selection-slider"></div>
+            </div>
           </div>
 
-          <!-- Duration -->
+          <div class="form-grid">
+            <!-- Budget -->
+            <div class="field">
+              <label for="budget">Budget</label>
+              <div class="input-wrapper">
+                <select id="budget" name="budget" required>
+                  <option value="" disabled selected>Select range</option>
+                  <option value="low">Economic</option>
+                  <option value="medium">Standard</option>
+                  <option value="high">Premium</option>
+                </select>
+                <span class="input-focus-border"></span>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <!-- Departure Date -->
+              <div class="field">
+                <label for="departure-date">Departure</label>
+                <div class="input-wrapper">
+                  <input type="date" id="departure-date" name="departure_date" required />
+                  <span class="input-focus-border"></span>
+                </div>
+              </div>
+
+              <!-- Return Date -->
+              <div class="field">
+                <label for="return-date">Return</label>
+                <div class="input-wrapper">
+                  <input type="date" id="return-date" name="return_date" required />
+                  <span class="input-focus-border"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <!-- Travel Style -->
+            <div class="field">
+              <label for="travel-style">Travel Style</label>
+              <div class="input-wrapper">
+                <select id="travel-style" name="travel_style" required>
+                  <option value="" disabled selected>Select style</option>
+                  <option value="adventure">Adventure</option>
+                  <option value="cultural">Cultural</option>
+                  <option value="relaxation">Relaxation</option>
+                  <option value="balanced">Balanced</option>
+                </select>
+                <span class="input-focus-border"></span>
+              </div>
+            </div>
+
+            <!-- Weather Preference -->
+            <div class="field">
+              <label for="weather-preference">Weather</label>
+              <div class="input-wrapper">
+                <select id="weather-preference" name="weather_preference" required>
+                  <option value="any" selected>Select Preference</option>
+                  <option value="warm">Warm &amp; Sunny</option>
+                  <option value="cold">Cold &amp; Snowy</option>
+                  <option value="tropical">Tropical</option>
+                </select>
+                <span class="input-focus-border"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Travel Pace -->
           <div class="field">
-            <label for="duration">Duration (days)</label>
-            <input type="number" id="duration" name="duration" min="1" max="30" value="5" required />
+            <label>Travel Pace</label>
+            <div class="segmented-control pace-control">
+              <input type="radio" id="pace-relaxed" name="travel_pace" value="relaxed" />
+              <label for="pace-relaxed" class="segment">Relaxed</label>
+
+              <input type="radio" id="pace-balanced" name="travel_pace" value="balanced" checked />
+              <label for="pace-balanced" class="segment">Balanced</label>
+
+              <input type="radio" id="pace-fast" name="travel_pace" value="fast" />
+              <label for="pace-fast" class="segment">Fast</label>
+
+              <div class="selection-slider"></div>
+            </div>
           </div>
 
-          <!-- Travel Style -->
-          <div class="field">
-            <label for="travel-style">Travel Style</label>
-            <select id="travel-style" name="travel_style" required>
-              <option value="" disabled selected>Choose a style</option>
-              <option value="adventure">Adventure</option>
-              <option value="cultural">Cultural</option>
-              <option value="relaxation">Relaxation</option>
-              <option value="balanced">Balanced</option>
-            </select>
-          </div>
-
-          <!-- Weather Preference -->
-          <div class="field">
-            <label for="weather-preference">Weather Preference</label>
-            <select id="weather-preference" name="weather_preference" required>
-              <option value="" disabled selected>Preferred weather</option>
-              <option value="warm">Warm &amp; Sunny</option>
-              <option value="cold">Cold &amp; Snowy</option>
-              <option value="tropical">Tropical</option>
-              <option value="any">No Preference</option>
-            </select>
-          </div>
-
-          <button type="submit" id="submit-btn" class="btn btn-primary">
-            <span class="btn-text">Find Destinations</span>
+          <button type="submit" id="submit-btn" class="btn btn-primary btn-glow">
+            <span class="btn-text">Discover Destinations</span>
             <span class="btn-arrow">→</span>
           </button>
         </form>
@@ -98,47 +169,74 @@
     <!-- ═══ SCREEN 2: Loading (recommendations) ════════════ -->
     <section id="screen-loading-plan" class="screen">
       <div class="loading-container">
-        <div class="spinner"></div>
-        <p class="loading-label" id="loading-plan-label">Finding destinations...</p>
-        <p class="loading-sub">Our AI is analysing preferences and weather data</p>
+        <div class="loading-visual">
+          <div class="pulse-circle"></div>
+          <div class="pulse-circle-inner"></div>
+          <span class="loading-icon">✈</span>
+        </div>
+        <div class="loading-text-group">
+          <p class="loading-label" id="loading-plan-label">Analysing Global Destinations</p>
+          <p class="loading-sub">Cross-referencing weather, budget, and travel styles...</p>
+        </div>
       </div>
     </section>
 
     <!-- ═══ SCREEN 3: Recommendation Cards ═════════════════ -->
     <section id="screen-recommendations" class="screen">
       <div class="section-header">
-        <h2 class="section-title">Your Top Destinations</h2>
-        <p class="section-subtitle">Click a destination to generate your personalised itinerary.</p>
+        <h2 class="section-title">Curated For You</h2>
+        <p class="section-subtitle">Select a destination to explore your detailed itinerary.</p>
       </div>
       <div id="recommendations-grid" class="recommendations-grid"></div>
-      <button id="back-to-form-btn" class="btn btn-ghost">← Start Over</button>
+      <div class="actions-centered">
+        <button id="back-to-form-btn" class="btn btn-ghost">← Modify Preferences</button>
+      </div>
     </section>
 
     <!-- ═══ SCREEN 4: Loading (itinerary) ══════════════════ -->
     <section id="screen-loading-itinerary" class="screen">
       <div class="loading-container">
-        <div class="spinner"></div>
-        <p class="loading-label" id="loading-itinerary-label">Building your itinerary...</p>
-        <p class="loading-sub">Crafting a day-by-day plan just for you</p>
+        <div class="loading-visual">
+          <div class="spinner-dual"></div>
+        </div>
+        <div class="loading-text-group">
+          <p class="loading-label" id="loading-itinerary-label">Crafting Your Itinerary</p>
+          <p class="loading-sub">Generating a day-by-day experience just for you...</p>
+        </div>
       </div>
     </section>
 
     <!-- ═══ SCREEN 5: Itinerary View ══════════════════════ -->
     <section id="screen-itinerary" class="screen">
       <div class="section-header">
-        <h2 class="section-title" id="itinerary-title">Your Itinerary</h2>
+        <h2 class="section-title" id="itinerary-title">Your Journey</h2>
         <p class="section-subtitle" id="itinerary-subtitle"></p>
       </div>
+      <!-- Transport Options (Amadeus) -->
+      <div id="transport-section" class="transport-section glass card" style="display: none;">
+        <div class="section-header-mini">
+          <h3>✈ Recommended Flights</h3>
+          <p>Real-time options found for your dates</p>
+        </div>
+        <div id="flight-list" class="flight-list"></div>
+      </div>
+
       <div id="itinerary-accordion" class="itinerary-accordion"></div>
-      <button id="back-to-recommendations-btn" class="btn btn-ghost">← Back to Destinations</button>
-      <button id="restart-btn" class="btn btn-primary" style="margin-top:0.5rem;">Plan Another Trip</button>
+      <div class="itinerary-footer">
+        <button id="back-to-recommendations-btn" class="btn btn-ghost">← Back</button>
+        <button id="restart-btn" class="btn btn-primary">Plan New Trip</button>
+      </div>
     </section>
 
   </main>
 
   <!-- ─── Footer ────────────────────────────────────────── -->
   <footer class="app-footer">
-    <p>Built with ♥ &amp; LangGraph &middot; AI Travel Agent</p>
+    <div class="footer-content">
+      <div class="footer-logo">Voyager<span>AI</span></div>
+      <div class="footer-divider"></div>
+      <p>&copy; 2026 AI Travel Agent &middot; Premium Experience</p>
+    </div>
   </footer>
 
   <script src="app.js"></script>

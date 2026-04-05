@@ -21,6 +21,8 @@ _REQUIRED_KEYS = [
     "OPENROUTER_API_KEY",
     "GROQ_API_KEY",
     "WEATHER_API_KEY",
+    "RAPIDAPI_KEY",
+    "UNSPLASH_ACCESS_KEY",
     "MODEL_PROVIDER",
 ]
 
@@ -37,5 +39,7 @@ if _missing:
 OPENROUTER_API_KEY: str = os.environ["OPENROUTER_API_KEY"]
 GROQ_API_KEY: str = os.environ["GROQ_API_KEY"]
 WEATHER_API_KEY: str = os.environ["WEATHER_API_KEY"]
+RAPIDAPI_KEY: str = os.environ["RAPIDAPI_KEY"]
+UNSPLASH_ACCESS_KEY: str = os.environ["UNSPLASH_ACCESS_KEY"]
 MODEL_PROVIDER: str = os.environ["MODEL_PROVIDER"].strip().lower()  # "groq" or "openrouter"
 MODEL_NAME: str = os.getenv("MODEL_NAME", "").strip()  # optional override

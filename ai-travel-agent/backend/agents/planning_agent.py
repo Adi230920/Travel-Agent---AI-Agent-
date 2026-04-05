@@ -83,7 +83,7 @@ _PROVIDER_DEFAULTS = {
     },
     "openrouter": {
         "base_url": "https://openrouter.ai/api/v1/chat/completions",
-        "model":    "arcee-ai/trinity-mini:free",
+        "model":    "qwen/qwen3.6-plus:free",
         "key_env":  "OPENROUTER_API_KEY",
     },
 }
@@ -218,7 +218,7 @@ def _validate_itinerary(data: dict, expected_days: int) -> None:
             f"Keys present: {list(itinerary.keys())}"
         )
 
-    required_slots = {"morning", "afternoon", "evening", "tip"}
+    required_slots = {"morning", "afternoon", "evening", "food_spots", "tip"}
     for day_label, slots in itinerary.items():
         if not isinstance(slots, dict):
             raise ValueError(
@@ -239,7 +239,7 @@ def _validate_itinerary(data: dict, expected_days: int) -> None:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-def generate_itinerary(destination: str, preferences: dict) -> dict:
+def generate_itinerary(destination: str, preferences: dict, restaurant_context: str = "") -> dict:
     """
     Generate a detailed day-by-day travel itinerary for *destination*.
 
@@ -263,8 +263,8 @@ def generate_itinerary(destination: str, preferences: dict) -> dict:
     expected_days = int(preferences.get("duration", 5))
 
     prompts = {
-        1: _build_user_prompt(destination, preferences),
-        2: _build_retry_prompt(destination, preferences),
+        1: _build_user_prompt(destination, preferences, restaurant_context),
+        2: _build_retry_prompt(destination, preferences, restaurant_context),
     }
 
     for attempt in (1, 2):

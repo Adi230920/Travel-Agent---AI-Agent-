@@ -36,6 +36,12 @@ class TravelState(TypedDict):
     # List of 5 ranked destination dicts (set by recommendation_node)
     recommendations: list
 
+    # High-quality images for recommendations and itinerary (set by nodes)
+    destination_images: dict
+
+    # Real-time flight/train options (set by planning_node)
+    transport_options: list
+
     # Name of the destination chosen by the user (set by the caller after interrupt)
     selected_destination: str
 
@@ -75,6 +81,8 @@ def create_initial_state(user_input: dict) -> TravelState:
         parsed_preferences={},
         weather_data={},
         recommendations=[],
+        destination_images={},
+        transport_options=[],
         selected_destination="",
         itinerary={},
         error="",
