@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   VoyagerAI — Premium Design System (Dark Theme)
+   GulliverAI — Premium Design System (Dark Theme)
    Font: Outfit (Google Fonts)
    Palette: 
      - Background: #020617 (Deep Navy/Black)
@@ -907,10 +907,10 @@ body {
   color: var(--color-accent);
 }
 
-.food-price {
-  font-weight: 900;
+.food-rating {
+  font-weight: 700;
   color: #fbbf24;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 .food-reason {

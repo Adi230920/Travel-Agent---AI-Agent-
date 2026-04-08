@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   VoyagerAI — Frontend Logic (Premium Experience)
+   GulliverAI — Frontend Logic (Premium Experience)
    ═══════════════════════════════════════════════════════════ */
 
 (function () {
@@ -148,7 +148,7 @@
         els.loadingPlanSub.textContent = 'Checking real-time conditions for ideal matches...';
       }, 3000),
       setTimeout(() => { 
-        els.loadingPlanLabel.textContent = 'Consulting VoyagerAI'; 
+        els.loadingPlanLabel.textContent = 'Consulting GulliverAI'; 
         els.loadingPlanSub.textContent = 'Our intelligence is ranking the best fits for you...';
       }, 6500),
     ];
@@ -169,7 +169,7 @@
       showScreen('recommendations');
     } catch (err) {
       labelTimers.forEach(clearTimeout);
-      showError(err.message || 'The Voyager system encountered an unexpected detour.');
+      showError(err.message || 'The Gulliver system encountered an unexpected detour.');
       showScreen('input');
     }
   });
@@ -252,7 +252,7 @@
       const flights = data.transport_options || [];
 
       if (!itinerary || (typeof itinerary === 'object' && Object.keys(itinerary).length === 0)) {
-        throw new Error('Voyager failed to map this journey. Please try another destination.');
+        throw new Error('Gulliver failed to map this journey. Please try another destination.');
       }
 
       renderTransport(flights);
@@ -362,7 +362,7 @@
                   <div class="food-card">
                     <div class="food-header">
                       <span class="food-name">${escapeHtml(fs.name)}</span>
-                      <span class="food-price">${escapeHtml(fs.price_level)}</span>
+                      ${fs.rating && fs.rating !== 'N/A' ? `<span class="food-rating">⭐ ${escapeHtml(fs.rating)}</span>` : ''}
                     </div>
                     <p class="food-reason">${escapeHtml(fs.reason)}</p>
                   </div>

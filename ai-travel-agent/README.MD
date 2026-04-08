@@ -1,11 +1,11 @@
-# ✈️ VoyagerAI — Intelligent Travel Agent
+# ✈️ GulliverAI — Intelligent Travel Agent
 
 An AI-powered travel planning ecosystem that transforms vague travel desires into detailed, actionable itineraries. Built with a modular, multi-agent architecture using **LangGraph** and **FastAPI**.
 
 ---
 
 ## 🎯 Objective
-The primary goal of VoyagerAI is to simplify the complex process of trip planning. By leveraging Large Language Models (LLMs) and real-time external data (Weather, TripAdvisor), the system provides personalized, context-aware destination recommendations and comprehensive day-by-day travel plans, ensuring every trip is optimized for the user's preferences, budget, and local conditions.
+The primary goal of GulliverAI is to simplify the complex process of trip planning. By leveraging Large Language Models (LLMs) and real-time external data (Weather, TripAdvisor), the system provides personalized, context-aware destination recommendations and comprehensive day-by-day travel plans, ensuring every trip is optimized for the user's preferences, budget, and local conditions.
 
 ## 🛠️ Tools / Technologies Used
 
@@ -30,7 +30,7 @@ The primary goal of VoyagerAI is to simplify the complex process of trip plannin
 
 ## 🧠 Methodology / Approach
 
-VoyagerAI utilizes an **Agentic Workflow** modeled as a directed graph. This allows for stateful transitions, error handling, and human-in-the-loop decision-making.
+GulliverAI utilizes an **Agentic Workflow** modeled as a directed graph. This allows for stateful transitions, error handling, and human-in-the-loop decision-making.
 
 1.  **State Management**: A centralized `TravelState` object tracks user preferences, recommended options, and the final itinerary throughout the session.
 2.  **Multi-Agent Pipeline**:
@@ -69,7 +69,7 @@ Creating a premium, responsive interface in `frontend/` that provides a seamless
 
 ### 🖥️ Dashboard View
 *The main interface where users input their travel desires.*
-![Dashboard Placeholder](https://via.placeholder.com/800x450/1e1e2e/ffffff?text=VoyagerAI+Dashboard+Interface)
+![Dashboard Placeholder](https://via.placeholder.com/800x450/1e1e2e/ffffff?text=GulliverAI+Dashboard+Interface)
 
 ### 🗺️ Destination Recommendations
 *Personalized suggestions with weather scores and high-quality imagery.*
@@ -82,7 +82,7 @@ Creating a premium, responsive interface in `frontend/` that provides a seamless
 ---
 
 ## 🏁 Conclusion
-VoyagerAI successfully demonstrates how specialized AI agents can collaborate to solve complex, multi-step problems like travel planning. By integrating real-world data with LLM reasoning, it provides a tool that is not just a chatbot, but a practical, context-aware travel consultant.
+GulliverAI successfully demonstrates how specialized AI agents can collaborate to solve complex, multi-step problems like travel planning. By integrating real-world data with LLM reasoning, it provides a tool that is not just a chatbot, but a practical, context-aware travel consultant.
 
 ## 🔮 Future Scope
 -   **Live Booking**: Integration with flight and hotel booking APIs (e.g., Amadeus, Skyscanner).

@@ -35,8 +35,8 @@ OUTPUT_SCHEMA = """\
       "afternoon": "<specific activity, ≤15 words>",
       "evening":   "<specific activity, ≤15 words>",
       "food_spots": [
-        {"name": "<Restaurant Name>", "type": "Lunch/Dinner", "price_level": "$/$ / $ / $", "reason": "<6 words>"},
-        {"name": "<Restaurant Name>", "type": "Lunch/Dinner", "price_level": "$/$ / $ / $", "reason": "<6 words>"}
+        {"name": "<Restaurant Name>", "type": "Lunch/Dinner", "rating": "<e.g. 4.5/5 or N/A>", "reason": "<6 words>"},
+        {"name": "<Restaurant Name>", "type": "Lunch/Dinner", "rating": "<e.g. 4.5/5 or N/A>", "reason": "<6 words>"}
       ],
       "tip":       "<practical tip: transport / cost / timing, ≤15 words>"
     }
@@ -57,8 +57,8 @@ Example — 2-day medium-budget trip to Bali, Indonesia (Relaxed pace):
       "afternoon": "Explore Ubud Monkey Forest and Sacred Art Market",
       "evening":   "Attend Kecak fire dance at Uluwatu temple",
       "food_spots": [
-        {"name": "Ibu Oka", "type": "Lunch", "price_level": "$$", "reason": "Famous suckling pig (Babi Guling)"},
-        {"name": "Potato Head", "type": "Dinner", "price_level": "$$$", "reason": "Beachfront dining and sunset cocktails"}
+        {"name": "Ibu Oka", "type": "Lunch", "rating": "4.8/5", "reason": "Famous suckling pig (Babi Guling)"},
+        {"name": "Potato Head", "type": "Dinner", "rating": "4.6/5", "reason": "Beachfront dining and sunset cocktails"}
       ],
       "tip":       "Rent a scooter for ~50,000 IDR/day for mobility"
     },
@@ -67,8 +67,8 @@ Example — 2-day medium-budget trip to Bali, Indonesia (Relaxed pace):
       "afternoon": "Soak in natural hot springs at Toya Devasya",
       "evening":   "Relax at Seminyak Beach with live jazz music",
       "food_spots": [
-        {"name": "Sisterfields", "type": "Lunch", "price_level": "$$", "reason": "Modern Australian-style cafe hub"},
-        {"name": "La Lucciola", "type": "Dinner", "price_level": "$$$", "reason": "Elegant beachfront Italian dining"}
+        {"name": "Sisterfields", "type": "Lunch", "rating": "4.5/5", "reason": "Modern Australian-style cafe hub"},
+        {"name": "La Lucciola", "type": "Dinner", "rating": "4.2/5", "reason": "Elegant beachfront Italian dining"}
       ],
       "tip":       "Book the Batur guide in advance (2 AM start)"
     }
@@ -113,8 +113,8 @@ You are an expert travel itinerary planner building a day-by-day trip plan.
 [CONSTRAINTS]
 - Generate EXACTLY {duration} day(s) with labels: {day_labels}. No more, no fewer.
 - Each day MUST contain EXACTLY these 5 keys: "morning", "afternoon", "evening", "food_spots", "tip".
-- **Food Spots constraint**: Include exactly 2 food spots per day (one lunch, one dinner) with a price level from "$" to "$$$$".
-- **Real-World Data**: If "Real TripAdvisor Dining Data" is provided above, you MUST prioritize selecting restaurants from that list for your "food_spots" entries.
+- **Food Spots constraint**: Include exactly 2 food spots per day (one lunch, one dinner) with a rating if available in the context (otherwise "N/A").
+- **Real-World Data**: If "Real TripAdvisor Dining Data" is provided above, you MUST prioritize selecting restaurants from that list for your "food_spots" entries and include their respective ratings.
 - Each activity field (morning / afternoon / evening): ≤ 15 words, specific and actionable.
 - **Pace Constraint**: Adjust the intensity of activities to a "{travel_pace}" pace.
 - "tip" field: one practical tip about transport, timing, or cost (≤ 15 words).
