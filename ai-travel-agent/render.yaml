@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: gulliver-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.api:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: ALLOWED_ORIGINS
+        value: "*" # Update this to your Vercel URL later for security
+      - fromEnvVar: OPENROUTER_API_KEY
+      - fromEnvVar: GROQ_API_KEY
+      - fromEnvVar: WEATHER_API_KEY
+      - fromEnvVar: RAPIDAPI_KEY
+      - fromEnvVar: UNSPLASH_ACCESS_KEY
+      - fromEnvVar: MODEL_PROVIDER
+      - fromEnvVar: MODEL_NAME
+      - key: PORT
+        value: 8000

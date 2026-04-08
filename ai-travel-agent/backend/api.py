@@ -15,10 +15,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AI Travel Agent API")
 
+import os
+
 # CORS configuration
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this to your frontend URL
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
