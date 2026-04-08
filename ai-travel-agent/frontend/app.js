@@ -7,7 +7,7 @@
 
   // ── Configuration ────────────────────────────────────────
   // Change PROD_API_URL to your Render URL after deployment
-  const PROD_API_URL = ''; 
+  const PROD_API_URL = 'https://gulliver-ai.onrender.com'; 
   const API_BASE = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
     ? 'http://127.0.0.1:8000'
     : PROD_API_URL;

@@ -8,7 +8,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: ALLOWED_ORIGINS
-        value: "*" # Update this to your Vercel URL later for security
+        value: "https://travel-agent-ai-agent.vercel.app"
       - fromEnvVar: OPENROUTER_API_KEY
       - fromEnvVar: GROQ_API_KEY
       - fromEnvVar: WEATHER_API_KEY
