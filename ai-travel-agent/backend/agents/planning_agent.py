@@ -46,47 +46,13 @@ import sys
 import time
 
 import requests
+from backend.llm_client import LLMClient
+from backend.config import MODEL_PROVIDER, MODEL_NAME
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Load config lazily (same pattern as recommendation_agent)
-# ---------------------------------------------------------------------------
-def _get_config() -> dict[str, str]:
-    """Return a dict with all required config values from .env."""
-    try:
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__)
-        ))))
-        from dotenv import load_dotenv
-        _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        load_dotenv(os.path.join(_root, ".env"))
-    except Exception:
-        pass
+# Configuration and provider defaults are now handled by backend.config and backend.llm_client.
 
-    return {
-        "OPENROUTER_API_KEY": os.getenv("OPENROUTER_API_KEY", ""),
-        "GROQ_API_KEY":       os.getenv("GROQ_API_KEY", ""),
-        "MODEL_PROVIDER":     os.getenv("MODEL_PROVIDER", "groq").strip().lower(),
-        "MODEL_NAME":         os.getenv("MODEL_NAME", "").strip(),
-    }
-
-
-# ---------------------------------------------------------------------------
-# Provider defaults
-# ---------------------------------------------------------------------------
-_PROVIDER_DEFAULTS = {
-    "groq": {
-        "base_url": "https://api.groq.com/openai/v1/chat/completions",
-        "model":    "llama-3.1-8b-instant",
-        "key_env":  "GROQ_API_KEY",
-    },
-    "openrouter": {
-        "base_url": "https://openrouter.ai/api/v1/chat/completions",
-        "model":    "nvidia/nemotron-3-super-120b-a12b:free",
-        "key_env":  "OPENROUTER_API_KEY",
-    },
-}
 
 # ---------------------------------------------------------------------------
 # Prompts — delegated to backend.prompts.itinerary_prompt
@@ -109,70 +75,8 @@ except ImportError:
     _build_retry_prompt = None  # type: ignore
 
 
-# ---------------------------------------------------------------------------
-# LLM call
-# ---------------------------------------------------------------------------
-def _call_llm(prompt: str, cfg: dict, temperature: float = 0.5) -> str:
-    """
-    Send a chat-completion request to the configured provider.
-    Returns raw assistant message text.
-    Raises RuntimeError on HTTP / network failure.
-    """
-    provider = cfg["MODEL_PROVIDER"]
-    if provider not in _PROVIDER_DEFAULTS:
-        logger.warning("Unknown MODEL_PROVIDER %r — falling back to 'groq'.", provider)
-        provider = "groq"
+# _call_llm is now handled by LLMClient.call_llm in a provider-agnostic way.
 
-    defaults = _PROVIDER_DEFAULTS[provider]
-    base_url = defaults["base_url"]
-    model    = cfg["MODEL_NAME"] or defaults["model"]
-    api_key  = cfg[defaults["key_env"]]
-
-    if not api_key:
-        raise RuntimeError(
-            f"No API key found for provider '{provider}'. "
-            f"Set {defaults['key_env']} in your .env file."
-        )
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type":  "application/json",
-    }
-    if provider == "openrouter":
-        headers["HTTP-Referer"] = "https://ai-travel-agent"
-        headers["X-Title"]      = "AI Travel Agent"
-
-    payload = {
-        "model":       model,
-        "temperature": temperature,
-        "messages": [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user",   "content": prompt},
-        ],
-    }
-
-    logger.info(
-        "planning_agent: calling %s model=%s temp=%.1f",
-        provider, model, temperature,
-    )
-
-    try:
-        response = requests.post(base_url, headers=headers, json=payload, timeout=90)
-    except requests.exceptions.RequestException as exc:
-        raise RuntimeError(f"Network error calling LLM: {exc}") from exc
-
-    if not response.ok:
-        raise RuntimeError(
-            f"LLM API returned HTTP {response.status_code}: {response.text[:300]}"
-        )
-
-    data = response.json()
-    try:
-        content = data["choices"][0]["message"]["content"]
-    except (KeyError, IndexError) as exc:
-        raise RuntimeError(f"Unexpected LLM response shape: {exc}\n{data}") from exc
-
-    return content
 
 
 # ---------------------------------------------------------------------------
@@ -259,7 +163,6 @@ def generate_itinerary(destination: str, preferences: dict, restaurant_context: 
     RuntimeError
         If the LLM call fails or returns invalid JSON after retry.
     """
-    cfg           = _get_config()
     expected_days = int(preferences.get("duration", 5))
 
     prompts = {
@@ -271,7 +174,12 @@ def generate_itinerary(destination: str, preferences: dict, restaurant_context: 
         logger.info("planning_agent: attempt %d/2 for '%s'", attempt, destination)
 
         try:
-            raw = _call_llm(prompts[attempt], cfg, temperature=0.5)
+            raw = LLMClient.call_llm(
+                prompt=prompts[attempt],
+                system_prompt=_SYSTEM_PROMPT,
+                temperature=0.5,
+                model_override=MODEL_NAME
+            )
         except RuntimeError:
             raise  # Network / auth failures are not retried
 
@@ -330,9 +238,9 @@ if __name__ == "__main__":
         "travel_style": "cultural",
     }
 
-    print("\n╔══════════════════════════════════════════════════════╗")
-    print("║   🗺️  Planning Agent — Manual Test Run               ║")
-    print("╚══════════════════════════════════════════════════════╝\n")
+    print("\n" + "="*56)
+    print("   AI Planning Agent — Manual Test Run         ")
+    print("="*56 + "\n")
     print(f"Destination : {test_destination}")
     print("Preferences :")
     pprint.pprint(test_preferences, indent=4)
@@ -340,14 +248,14 @@ if __name__ == "__main__":
 
     try:
         result = generate_itinerary(test_destination, test_preferences)
-        print(f"\n✅  {result.get('destination')} — {result.get('duration')}-day itinerary:\n")
+        print(f"\nResult: {result.get('destination')} — {result.get('duration')}-day itinerary:\n")
         for day, slots in result["itinerary"].items():
             print(f"  {day}:")
-            print(f"    🌅 Morning   : {slots.get('morning')}")
-            print(f"    ☀️  Afternoon : {slots.get('afternoon')}")
-            print(f"    🌙 Evening   : {slots.get('evening')}")
-            print(f"    💡 Tip       : {slots.get('tip')}")
+            print(f"    Morning   : {slots.get('morning')}")
+            print(f"    Afternoon : {slots.get('afternoon')}")
+            print(f"    Evening   : {slots.get('evening')}")
+            print(f"    Tip       : {slots.get('tip')}")
             print()
     except RuntimeError as err:
-        print(f"\n❌  Error: {err}")
+        print(f"\n[Error]: {err}")
         sys.exit(1)

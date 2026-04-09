@@ -32,48 +32,13 @@ import time
 from typing import Any
 
 import requests
+from backend.llm_client import LLMClient
+from backend.config import MODEL_PROVIDER, MODEL_NAME
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Load config lazily so the module is importable in isolation (tests, etc.)
-# ---------------------------------------------------------------------------
-def _get_config() -> dict[str, str]:
-    """Return a dict with all required config values."""
-    # Try the backend config module first
-    try:
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__)
-        ))))
-        from dotenv import load_dotenv
-        _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        load_dotenv(os.path.join(_root, ".env"))
-    except Exception:
-        pass
+# Configuration and provider defaults are now handled by backend.config and backend.llm_client.
 
-    return {
-        "OPENROUTER_API_KEY": os.getenv("OPENROUTER_API_KEY", ""),
-        "GROQ_API_KEY":       os.getenv("GROQ_API_KEY", ""),
-        "MODEL_PROVIDER":     os.getenv("MODEL_PROVIDER", "groq").strip().lower(),
-        "MODEL_NAME":         os.getenv("MODEL_NAME", "").strip(),
-    }
-
-
-# ---------------------------------------------------------------------------
-# Provider defaults
-# ---------------------------------------------------------------------------
-_PROVIDER_DEFAULTS = {
-    "groq": {
-        "base_url": "https://api.groq.com/openai/v1/chat/completions",
-        "model":    "llama-3.1-8b-instant",
-        "key_env":  "GROQ_API_KEY",
-    },
-    "openrouter": {
-        "base_url": "https://openrouter.ai/api/v1/chat/completions",
-        "model":    "nvidia/nemotron-3-super-120b-a12b:free",
-        "key_env":  "OPENROUTER_API_KEY",
-    },
-}
 
 # ---------------------------------------------------------------------------
 # Prompt construction — delegated to backend.prompts.recommendation_prompt
@@ -93,67 +58,8 @@ except ImportError:
     _build_user_prompt = None  # type: ignore
 
 
-# ---------------------------------------------------------------------------
-# LLM call (provider-agnostic via OpenAI-compatible REST)
-# ---------------------------------------------------------------------------
-def _call_llm(prompt: str, cfg: dict) -> str:
-    """
-    Send a chat-completion request to the configured provider.
-    Returns the raw text content of the assistant message.
-    Raises RuntimeError on HTTP or network failure.
-    """
-    provider = cfg["MODEL_PROVIDER"]
-    if provider not in _PROVIDER_DEFAULTS:
-        logger.warning("Unknown MODEL_PROVIDER %r — falling back to 'groq'.", provider)
-        provider = "groq"
+# _call_llm is now handled by LLMClient.call_llm in a provider-agnostic way.
 
-    defaults  = _PROVIDER_DEFAULTS[provider]
-    base_url  = defaults["base_url"]
-    model     = cfg["MODEL_NAME"] or defaults["model"]
-    api_key   = cfg[defaults["key_env"]]
-
-    if not api_key:
-        raise RuntimeError(
-            f"No API key found for provider '{provider}'. "
-            f"Set {defaults['key_env']} in your .env file."
-        )
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type":  "application/json",
-    }
-    if provider == "openrouter":
-        headers["HTTP-Referer"] = "https://ai-travel-agent"
-        headers["X-Title"]      = "AI Travel Agent"
-
-    payload = {
-        "model": model,
-        "temperature": 0.7,
-        "messages": [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user",   "content": prompt},
-        ],
-    }
-
-    logger.info("recommendation_agent: calling %s with model=%s", provider, model)
-
-    try:
-        response = requests.post(base_url, headers=headers, json=payload, timeout=60)
-    except requests.exceptions.RequestException as exc:
-        raise RuntimeError(f"Network error calling LLM: {exc}") from exc
-
-    if not response.ok:
-        raise RuntimeError(
-            f"LLM API returned HTTP {response.status_code}: {response.text[:300]}"
-        )
-
-    data = response.json()
-    try:
-        content = data["choices"][0]["message"]["content"]
-    except (KeyError, IndexError) as exc:
-        raise RuntimeError(f"Unexpected LLM response shape: {exc}\n{data}") from exc
-
-    return content
 
 
 # ---------------------------------------------------------------------------
@@ -236,12 +142,16 @@ def get_recommendations(preferences: dict, weather_data: dict) -> list[dict]:
     ------
     RuntimeError  if the LLM call fails or returns unparseable JSON after retry.
     """
-    cfg    = _get_config()
     prompt = _build_user_prompt(preferences, weather_data)
 
     for attempt in (1, 2):
         logger.info("recommendation_agent: attempt %d/2", attempt)
-        raw = _call_llm(prompt, cfg)
+        raw = LLMClient.call_llm(
+            prompt=prompt,
+            system_prompt=_SYSTEM_PROMPT,
+            temperature=0.7,
+            model_override=MODEL_NAME
+        )
         logger.debug("recommendation_agent: raw response:\n%s", raw)
 
         try:
@@ -295,16 +205,16 @@ if __name__ == "__main__":
         "Patagonia":{"temp_celsius":  8.0, "condition": "Windy",   "weather_score": 8},
     }
 
-    print("\n╔══════════════════════════════════════════════════════╗")
-    print("║   🤖  Recommendation Agent — Manual Test Run         ║")
-    print("╚══════════════════════════════════════════════════════╝\n")
+    print("\n" + "="*56)
+    print("   AI Recommendation Agent — Manual Test Run         ")
+    print("="*56 + "\n")
     print("Preferences:")
     pprint.pprint(test_preferences, indent=4)
     print()
 
     try:
         results = get_recommendations(test_preferences, test_weather)
-        print(f"\n✅  Got {len(results)} recommendations:\n")
+        print(f"\n[OK] Got {len(results)} recommendations:\n")
         for rec in results:
             print(f"  #{rec.get('rank', '?')}  {rec.get('destination')}, {rec.get('country')}")
             print(f"       Reason      : {rec.get('reason')}")
