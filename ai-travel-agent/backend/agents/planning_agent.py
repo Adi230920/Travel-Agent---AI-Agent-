@@ -83,7 +83,7 @@ _PROVIDER_DEFAULTS = {
     },
     "openrouter": {
         "base_url": "https://openrouter.ai/api/v1/chat/completions",
-        "model":    "nvidia/nemotron-3-super-120b-a12b:free",
+        "model":    "openrouter/free",
         "key_env":  "OPENROUTER_API_KEY",
     },
 }
