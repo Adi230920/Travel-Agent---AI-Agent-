@@ -17,6 +17,7 @@
   const $$ = (sel) => document.querySelectorAll(sel);
 
   const screens = {
+    onboarding:        $('#screen-onboarding'),
     input:             $('#screen-input'),
     loadingPlan:       $('#screen-loading-plan'),
     recommendations:   $('#screen-recommendations'),
@@ -25,6 +26,7 @@
   };
 
   const els = {
+    startOnboardingBtn:   $('#start-discovery-btn'),
     form:                 $('#plan-form'),
     submitBtn:            $('#submit-btn'),
     recGrid:              $('#recommendations-grid'),
@@ -69,8 +71,26 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // Initialization & Onboarding
+  // ═══════════════════════════════════════════════════════════
+
+  function init() {
+    const hasOnboarded = localStorage.getItem('gulliver_onboarded');
+    if (hasOnboarded) {
+      showScreen('input');
+    } else {
+      showScreen('onboarding');
+    }
+  }
+
+  els.startOnboardingBtn.addEventListener('click', () => {
+    localStorage.setItem('gulliver_onboarded', 'true');
+    showScreen('input');
+  });
+
   // Initial state
-  showScreen('input');
+  init();
 
   // ═══════════════════════════════════════════════════════════
   // Error Banner
